@@ -1,0 +1,17 @@
+export enum ErrorCodes {
+    BASE = 10000,
+    EMPLOYEE = 11000,
+    ROLE = 12000,
+    USER = 13000,
+    NEWS = 14000,
+    CLASS = 15000,
+    SUBJECT = 16000,
+    CHAPTER = 17000,
+    TEST = 18000,
+    TOPIC = 19000,
+    QUESTION = 20000,
+    ANSWER = 21000,
+    TEST_RESULT = 22000,
+    SOLVE_TESTS = 23000,
+    MESSAGE = 24000
+}

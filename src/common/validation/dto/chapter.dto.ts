@@ -1,0 +1,13 @@
+import { IsMongoId, IsString } from "class-validator";
+import { BaseDto } from "../base.dto";
+import { DtoGroup } from "../dtoGroups";
+import { IsMongoIdCustom } from "../isMongoId";
+
+
+export class ChapterDto extends BaseDto{
+    @IsString({ groups: [DtoGroup.CREATE, DtoGroup.UPDATE] })
+    name: string
+
+    @IsMongoIdCustom({ groups: [DtoGroup.CREATE, DtoGroup.UPDATE] })
+    subjectId: string
+}
