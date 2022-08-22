@@ -122,7 +122,7 @@ class TestService extends CommonServices<Test>{
             if (!result.length) result = await this.findPaging(newQuery, dto, [$sort, $project])
 
             for (let data of result) {
-                const averageResult = await testResultService.avarageResult(data._id)
+                const averageResult = (await testResultService.avarageResult(data._id))
                 data.averageResult = averageResult
             }
 
@@ -177,13 +177,13 @@ class TestService extends CommonServices<Test>{
             const data = await this.aggregate($pipeline)
             if (!data || !data[0]) throw TestResponse.NotFound(id);
 
-            const averageResult = await testResultService.avarageResult(id)
-            const maxResult = await testResultService.maxResult(id)
+            const averageResult = (await testResultService.avarageResult(id))
+            const maxResult = (await testResultService.maxResult(id))
             const userCount = await testResultService.userCount(id)
             
             data[0].userCount = userCount
-            data[0].averageResult = averageResult
-            data[0].maxResult = maxResult
+            data[0].averageResult = averageResult.avg
+            data[0].maxResult = maxResult.max
 
 
             return data;

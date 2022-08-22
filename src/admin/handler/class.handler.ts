@@ -1,5 +1,5 @@
 import { ROLES } from "../../common/constants/roles"
-import { ClassResponse } from "../../common/db/model/class/class.error"
+import { ClassResponse } from "../../common/db/model/subject/class/class.error"
 import { BaseDto } from "../../common/validation/base.dto"
 import { PagingDto } from "../../common/validation/dto/paging.dto"
 import { ClassDto } from "../../common/validation/dto/class.dto"

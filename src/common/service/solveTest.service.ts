@@ -1,6 +1,5 @@
 import { ModelType } from "@typegoose/typegoose/lib/types";
 import { Types } from "mongoose";
-import { SolveTestResponse } from "../db/model/tests/solveTests/solveTests.error";
 import { SolveTest, SolveTestModel } from "../db/model/tests/solveTests/solveTests.model";
 import { Status } from "../db/model/tests/testResults/testResult.model";
 import { SolveTestDto } from "../validation/dto/solveTest.dto";
@@ -17,25 +16,22 @@ class SolveTestService extends CommonServices<SolveTest>{
 
     public async create(data: SolveTestDto) {
         try {
-            const question = await questionService.findById(data.questionId)
+            const test = await testResultService.findOne({ userId: data.userId, status: Status.STARTED })
 
-            let startedAt = (await testResultService.find({ userId: data.userId, status: Status.STARTED, testId: question.testId }))
-            if (!startedAt.length) throw SolveTestResponse.Finished(question.testId)
-            const limit = (await testService.findById(question.testId)).duration
-            let start = startedAt[0].startedAt
-            console.log(start.getTime())
-            if (new Date() > new Date(start.getTime() + 1000 * 60 * limit)) return
+            const limit = (await testService.findById(test.testId)).duration
+            
+            if (new Date() > new Date(test.startedAt.getTime() + 1000 * 60 * limit)) return
 
             const $match = {
                 $match: {
                     userId: new Types.ObjectId(data.userId),
                     questionId: new Types.ObjectId(data.questionId),
-                    createdAt: { $gte: new Date(start), $lt: new Date(start.getTime() + 1000 * 60 * limit) }
+                    createdAt: { $gte: new Date(test.startedAt) }
                 }
             }
-            const isDuplicate = await solveTestService.aggregate([$match])
+            const isDuplicate = (await solveTestService.aggregate([$match])).shift()
 
-            if (isDuplicate.length) return await this.updateOne(isDuplicate[0]._id, data)
+            if (isDuplicate) return await this.updateOne(isDuplicate._id, data)
 
             return await super.create(data)
         } catch (error) {
@@ -45,108 +41,81 @@ class SolveTestService extends CommonServices<SolveTest>{
 
     public async checkTest(testId, userId) {
         try {
-            const startedAt = (await testResultService.find({ userId: new Types.ObjectId(userId), status: Status.STARTED, testId: new Types.ObjectId(testId) }))[0].startedAt
-
-            let $userMatch = {
-                $match: {
-                    userId: new Types.ObjectId(userId),
-                    createdAt: { $gte: new Date(startedAt) }
-                }
-            }
-
-            const userAnswers = await this.aggregate([$userMatch])
-
-            for (let item of userAnswers) {
-
-                let $match = {
-                    $match: {
-                        _id: new Types.ObjectId(item.questionId)
-                    }
-                }
-
-                const answers = (await questionService.aggregate([$match]))[0].answers
-
-                const trueAnswer = answers.filter(e => e.isCorrect == true)
-
-                let query = { $inc: { score: 1 } }
-
-                let $testMatch = {
-                    $match: {
-                        testId: new Types.ObjectId(testId),
-                        userId: new Types.ObjectId(userId),
-                        status: Status.STARTED
-                    }
-                }
-
-                const test = (await testResultService.aggregate([$testMatch]))[0]
-
-                if ((trueAnswer[0]._id).toString() == (item.answerId).toString()) {
-                    await testResultService.updateOne(new Types.ObjectId(test._id), query)
-                }
-            }
-
-            return
-        } catch (error) {
-            throw error
-        }
-    }
-
-    public async findStatus(questionId) {
-        try {
-            const question = await questionService.findById(questionId)
-
-            let $match = {
-                $match: {
-                    "testId": question.testId
-                }
-            }
-            const result = await testResultService.aggregate([$match])
-            if (!result.length) {
-                return Status.PENDING
-            }
-            return result[0].status
-        } catch (error) {
-            throw error
-        }
-    }
-
-    public async finishTest(data) {
-        try {
-            const testResult = (await testResultService.find({ testId: data.testId, userId: data.userId, status: Status.STARTED }))[0]
-
-            await testResultService.updateOne(testResult._id, data)
-
-            const questionCount = (await testService.findById(data.testId)).questionCount
             const $match = {
                 $match: {
-                    _id: testResult._id
+                    testId: new Types.ObjectId(testId)
                 }
             }
-            const $time = {
+            const $project = {
                 $project: {
-                    _id: 0,
-                    duration: {
-                        $dateDiff: {
-                            startDate: "$startedAt",
-                            endDate: "$finishedAt",
-                            unit: "second"
+                    answers: {
+                        $map: {
+                            input: {
+                                $filter: {
+                                    input: "$answers",
+                                    as: "answer",
+                                    cond: {
+                                        $and: [
+                                            { $eq: ["$$answer.isCorrect", true] }
+                                        ]
+                                    }
+                                },
+                            },
+                            as: "el",
+                            in: "$$el._id"
+                        }
+                    }
+                },
+            }
+
+            const $unwind = {
+                $unwind: {
+                    path: "$answers"
+                }
+            }
+            const questions = await questionService.aggregate([$match, $project, $unwind])
+
+            const test = await testResultService.findOne({ userId: userId, status: Status.STARTED })
+
+            const $userProject = {
+                $project: {
+                    userId: 1,
+                    createdAt: 1,
+                    trueAnswer: {
+                        $filter: {
+                            input: questions,
+                            as: "true",
+                            cond: {
+                                $and: [
+                                    { $eq: ["$$true.answers", "$answerId"] }
+                                ]
+                            }
                         }
                     }
                 }
             }
-            const spendTime = await testResultService.aggregate([$match, $time])
 
-            const percent = parseInt((testResult.score * 100 / questionCount).toFixed())
-
-            await testResultService.updateOne(testResult._id, { result: percent })
-
-            const statistics = {
-                questions: questionCount,
-                spendTime: spendTime[0].duration,
-                trueAnswers: testResult.score,
-                result: percent
+            let $userMatch = {
+                $match: {
+                    userId: new Types.ObjectId(userId),
+                    createdAt: { $gte: new Date(test.startedAt) },
+                    $expr: {
+                        $and: [
+                            { $size: "$trueAnswer" }
+                        ]
+                    }
+                }
             }
-            return statistics
+
+            const userAnswers = await this.aggregate([$userProject, $userMatch])
+
+            let data = {
+                score: userAnswers.length,
+                finishedAt: new Date(),
+                status: Status.FINISHED,
+                result: userAnswers.length *100/questions.length
+            }
+            return await testResultService.updateOne(test._id, data)
         } catch (error) {
             throw error
         }

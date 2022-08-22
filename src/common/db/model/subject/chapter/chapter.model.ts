@@ -1,8 +1,8 @@
 import { getModelForClass, index, modelOptions, prop, Ref } from "@typegoose/typegoose";
 import { Types } from "mongoose";
-import { Collections } from "../../../constants/collections";
-import { BaseModel } from "../baseModel";
-import { Subject } from "../subject/subject.model";
+import { Collections } from "../../../../constants/collections";
+import { BaseModel } from "../../baseModel";
+import { Subject } from "../subject.model";
 
 
 @modelOptions({

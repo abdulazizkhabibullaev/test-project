@@ -2,7 +2,7 @@ import { getModelForClass, index, modelOptions, prop, Ref } from "@typegoose/typ
 import { Types } from "mongoose";
 import { Collections } from "../../../constants/collections";
 import { BaseModel } from "../baseModel";
-import { Class } from "../class/class.model";
+import { Class } from "./class/class.model";
 
 
 @modelOptions({

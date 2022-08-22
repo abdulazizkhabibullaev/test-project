@@ -26,20 +26,29 @@ class QuestionService extends CommonServices<Question>{
     public async getPaging(testId, data: PagingDto) {
         let query = {
             isDeleted: false,
-            testId: new Types.ObjectId(testId)
+            testId: new Types.ObjectId(testId),
         }
+
 
         const $project = {
             $project: {
                 question: 1,
                 answers: {
-                    _id: 1,
-                    isCorrect: 1,
-                    answer: 1,
+                    $filter: {
+                        input: "$answers",
+                        as: "answer",
+                        cond: {
+                            $and: [
+                                { $eq: ["$$answer.isCorrect", true] }
+                            ]
+                        }
+                    }
                 },
             }
         }
-        const $pipeline = [ $project]
+
+        const $pipeline = [$project]
+
         return await this.findPaging(query, data, $pipeline)
     }
 

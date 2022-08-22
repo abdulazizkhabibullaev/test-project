@@ -1,8 +1,8 @@
 import { ModelType } from "@typegoose/typegoose/lib/types";
 import { QueryOptions, Types } from "mongoose";
 import { Collections } from "../constants/collections";
-import { ChapterResponse } from "../db/model/chapter/chapter.error";
-import { Chapter, ChapterModel } from "../db/model/chapter/chapter.model";
+import { ChapterResponse } from "../db/model/subject/chapter/chapter.error";
+import { Chapter, ChapterModel } from "../db/model/subject/chapter/chapter.model";
 import { CommonServices } from "./common.service";
 import { ChapterDto } from "../validation/dto/chapter.dto";
 import { PagingDto } from "../validation/dto/paging.dto";

@@ -19,7 +19,6 @@ export async function testResultsHandler(req, res, next: Function) {
 
 export async function myResultsHandler(req, res, next: Function) {
     try {
-        console.log(req.userId)
         const result = await testResultService.myResults(req.userId)
 
         return await res.send(TestResultResponse.Success(result))
@@ -30,7 +29,6 @@ export async function myResultsHandler(req, res, next: Function) {
 
 export async function myStatisticsHandler(req, res, next: Function) {
     try {
-
         const result = await testResultService.statistics(req.userId)
 
         return await res.send(TestResultResponse.Success(result))

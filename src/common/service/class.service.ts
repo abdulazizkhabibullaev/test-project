@@ -1,8 +1,8 @@
 import { ModelType } from "@typegoose/typegoose/lib/types";
 import { QueryOptions, Types } from "mongoose";
 import { Collections } from "../../common/constants/collections";
-import { ClassResponse } from "../../common/db/model/class/class.error";
-import { Class, ClassModel } from "../../common/db/model/class/class.model";
+import { ClassResponse } from "../db/model/subject/class/class.error";
+import { Class, ClassModel } from "../db/model/subject/class/class.model";
 import { Employee } from "../../common/db/model/employee/employee.model";
 import { CommonServices } from "../../common/service/common.service";
 import { ClassDto } from "../../common/validation/dto/class.dto";

@@ -1,4 +1,4 @@
-import { getModelForClass, modelOptions, prop, Ref } from "@typegoose/typegoose";
+import { getModelForClass, index, modelOptions, prop, Ref } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Collections } from "../../../../constants/collections";
 import { BaseModel } from "../../baseModel";
@@ -10,6 +10,22 @@ export enum Status {
     FINISHED = 'finished',
     PENDING = 'pending'
 }
+
+@index(
+    {
+        userId: 1
+    },
+    {
+        unique: true,
+        name: "userId",
+        background: true,
+        partialFilterExpression: {
+            status: {
+                $eq: Status.STARTED
+            }
+        }
+    }
+)
 
 @modelOptions({
     schemaOptions: {

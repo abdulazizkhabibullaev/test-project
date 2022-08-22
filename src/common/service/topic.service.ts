@@ -1,8 +1,8 @@
 import { ModelType } from "@typegoose/typegoose/lib/types";
 import { QueryOptions, Types } from "mongoose";
 import { Collections } from "../../common/constants/collections";
-import { TopicResponse } from "../../common/db/model/topic/topic.error";
-import { Topic, TopicModel } from "../../common/db/model/topic/topic.model";
+import { TopicResponse } from "../db/model/subject/topic/topic.error";
+import { Topic, TopicModel } from "../db/model/subject/topic/topic.model";
 import { CommonServices } from "../../common/service/common.service";
 import { TopicDto } from "../../common/validation/dto/topic.dto";
 import { PagingDto } from "../../common/validation/dto/paging.dto";

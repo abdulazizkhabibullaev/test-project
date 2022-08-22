@@ -1,4 +1,4 @@
-import { TopicResponse } from "../../common/db/model/topic/topic.error"
+import { TopicResponse } from "../../common/db/model/subject/topic/topic.error"
 import { BaseDto } from "../../common/validation/base.dto"
 import { PagingDto } from "../../common/validation/dto/paging.dto"
 import { DtoGroup } from "../../common/validation/dtoGroups"

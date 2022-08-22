@@ -1,5 +1,5 @@
-import { ErrorCodes } from "../../../constants/errorCodes";
-import { BaseResponse } from "../../../reporter/base.response";
+import { ErrorCodes } from "../../../../constants/errorCodes";
+import { BaseResponse } from "../../../../reporter/base.response";
 
 
 export class ClassResponse extends BaseResponse {

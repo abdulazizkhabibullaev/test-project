@@ -1,13 +1,61 @@
 import { ModelType } from "@typegoose/typegoose/lib/types"
-import { QueryOptions, Types } from "mongoose"
+import { Types } from "mongoose"
 import { Collections } from "../constants/collections"
+import { TestResultResponse } from "../db/model/tests/testResults/testResult.error"
 import { TestResult, TestResultModel } from "../db/model/tests/testResults/testResult.model"
-import { TestResultDto } from "../validation/dto/testResult.dto"
 import { CommonServices } from "./common.service"
+import { testService } from "./test.service"
 
 class TestResultService extends CommonServices<TestResult>{
     constructor(model: ModelType<TestResult>) {
         super(model)
+    }
+
+    public async create(data) {
+        try {
+            return await super.create(data)
+        } catch (e) {
+            if (e.code == 11000) throw TestResultResponse.NotFinished(Object.keys(e.keyPattern))
+            throw e
+        }
+    }
+
+    public async lastTestResult(id) {
+        try {
+            const $match = {
+                $match: {
+                    _id: new Types.ObjectId(id)
+                }
+            }
+            const $project = {
+                $project: {
+                    _id: 1,
+                    duration: {
+                        $dateDiff: {
+                            startDate: "$startedAt",
+                            endDate: "$finishedAt",
+                            unit: "second"
+                        }
+                    },
+                    userId: 1,
+                    testId: 1,
+                    score: 1,
+                    result: 1
+                }
+            }
+
+            const test = (await testResultService.aggregate([$match, $project])).shift()
+
+            const questionCount = (await testService.findById(test.testId)).questionCount
+
+            const statistics = {
+                ...test,
+                questions: questionCount
+            }
+            return statistics
+        } catch (error) {
+            throw error
+        }
     }
 
     public async testResults(testId) {
@@ -51,20 +99,21 @@ class TestResultService extends CommonServices<TestResult>{
 
     public async avarageResult(testId) {
         try {
+            let $group = {
+                $group: {
+                    _id: "$testId",
+                    avg: { $avg: "$result" }
+                }
+            }
             let $match = {
                 $match: {
                     testId: new Types.ObjectId(testId),
                     isDeleted: false
                 }
             }
-            const result = await testResultService.aggregate([$match])
-            let scores = []
+            const result = await testResultService.aggregate([$match, $group])
 
-            result.forEach(e => scores.push(e.result))
-
-            const average = scores.reduce((a, b) => a + b, 0) / scores.length
-
-            return average
+            return result.shift()
         } catch (error) {
             return error
         }
@@ -72,20 +121,21 @@ class TestResultService extends CommonServices<TestResult>{
 
     public async maxResult(testId) {
         try {
+            let $group = {
+                $group: {
+                    _id: "$testId",
+                    max: { $max: "$result" }
+                }
+            }
             let $match = {
                 $match: {
                     testId: new Types.ObjectId(testId),
                     isDeleted: false
                 }
             }
-            let $sort = {
-                $sort: {
-                    result: -1
-                }
-            }
-            const result = (await testResultService.aggregate([$match, $sort]))[0]
+            const result = await testResultService.aggregate([$match, $group])
 
-            return result.result
+            return result.shift()
         } catch (error) {
             return error
         }
@@ -147,29 +197,40 @@ class TestResultService extends CommonServices<TestResult>{
 
 
     public async statistics(userId) {
+
         const result = await this.myResults(userId)
 
         const testCount = result.length
 
+        let $match = {
+            $match: {
+                userId: new Types.ObjectId(userId)
+            }
+        }
+
+        const $group = {
+            $group: {
+                _id: "$userId",
+                avg: { $avg: "$result" }
+            }
+        }
+        const totalAverage = (await this.aggregate([$match, $group])).shift()
+
         const lastWeek = new Date(new Date().getTime() - 1000 * 3600 * 24 * 7)
-        const week = result.filter(e => e.finishedAt > lastWeek)
 
-        let scores = []
+        const $weekMatch = {
+            $match: {
+                userId: new Types.ObjectId(userId),
+                finishedAt: { $gte: lastWeek }
+            }
+        }
 
-        week.forEach(e => scores.push(e.result))
-
-        const weekAverage = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed()
-
-        scores = []
-        
-        result.forEach(e => scores.push(e.result))
-
-        const average = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed()
+        const weekAverage = (await this.aggregate([$weekMatch, $group])).shift()
 
         const data = {
             testCount: testCount,
-            weekAverage: weekAverage,
-            totalAverage: average
+            weekAverage: weekAverage.avg,
+            totalAverage: totalAverage.avg
         }
 
         return data

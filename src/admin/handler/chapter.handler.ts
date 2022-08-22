@@ -1,5 +1,5 @@
 import { ROLES } from "../../common/constants/roles"
-import { ChapterResponse } from "../../common/db/model/chapter/chapter.error"
+import { ChapterResponse } from "../../common/db/model/subject/chapter/chapter.error"
 import { BaseDto } from "../../common/validation/base.dto"
 import { PagingDto } from "../../common/validation/dto/paging.dto"
 import { ChapterDto } from "../../common/validation/dto/chapter.dto"

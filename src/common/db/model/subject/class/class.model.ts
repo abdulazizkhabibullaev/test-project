@@ -1,6 +1,6 @@
 import { getModelForClass, index, modelOptions, prop } from "@typegoose/typegoose";
-import { Collections } from "../../../constants/collections";
-import { BaseModel } from "../baseModel";
+import { Collections } from "../../../../constants/collections";
+import { BaseModel } from "../../baseModel";
 
 
 @modelOptions({
