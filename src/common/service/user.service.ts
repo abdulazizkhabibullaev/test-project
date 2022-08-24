@@ -23,13 +23,9 @@ class UserService extends CommonServices<User>{
     }
 
     public async findByPhoneNumber(data) {
-        try {
-            const user = await this.findOne({ phoneNumber: data })
-            if (!user) throw UserResponse.NotFound(data)
-            return user
-        } catch (error) {
-            throw error
-        }
+        const user = await this.findOne({ phoneNumber: data })
+        if (!user) throw UserResponse.NotFound(data)
+        return user
     }
 
     public async getPaging(data: PagingDto) {
@@ -61,30 +57,26 @@ class UserService extends CommonServices<User>{
     }
 
     public async getById(id: string) {
-        try {
-            const $match = {
-                $match: {
-                    _id: new Types.ObjectId(id),
-                    isDeleted: false
-                }
+        const $match = {
+            $match: {
+                _id: new Types.ObjectId(id),
+                isDeleted: false
             }
-            const $project = {
-                $project: {
-                    _id: 1,
-                    firstName: 1,
-                    lastName: 1,
-                    phoneNumber: 1,
-                    address: 1,
-                    gender: 1
-                }
-            }
-            const $pipeline = [$match, $project]
-            const data = await this.aggregate($pipeline)
-            if (!data || !data[0]) throw UserResponse.NotFound(id);
-            return data[0];
-        } catch (error) {
-            return error
         }
+        const $project = {
+            $project: {
+                _id: 1,
+                firstName: 1,
+                lastName: 1,
+                phoneNumber: 1,
+                address: 1,
+                gender: 1
+            }
+        }
+        const $pipeline = [$match, $project]
+        const data = await this.aggregate($pipeline)
+        if (!data || !data[0]) throw UserResponse.NotFound(id);
+        return data[0];
     }
 }
 

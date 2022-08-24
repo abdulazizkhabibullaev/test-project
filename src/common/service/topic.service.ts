@@ -65,63 +65,55 @@ class TopicService extends CommonServices<Topic>{
     }
 
     public async getById(id: string) {
-        try {
-            const $match = {
-                $match: {
-                    _id: new Types.ObjectId(id),
-                    isDeleted: false
-                }
+        const $match = {
+            $match: {
+                _id: new Types.ObjectId(id),
+                isDeleted: false
             }
-            const $lookup = {
-                $lookup: {
-                    from: Collections.CHAPTER,
-                    foreignField: "_id",
-                    localField: "chapterId",
-                    as: "chapter"
-                }
-            }
-            const $unwind = {
-                $unwind: {
-                    path: "$chapter",
-                    preserveNullAndEmptyArrays: true
-                }
-            }
-            const $project = {
-                $project: {
-                    name: 1,
-                    chapter: {
-                        _id: 1,
-                        name: 1
-                    }
-                }
-            }
-            const $pipeline = [$match, $lookup, $unwind, $project]
-            const data = await this.aggregate($pipeline)
-            if (!data || !data[0]) throw TopicResponse.NotFound(id);
-            return data[0];
-        } catch (error) {
-            return error
         }
-    }
-
-    public async getByChapterId(id) {
-        try {
-            const $match = {
-                $match: {
-                    "chapterId": new Types.ObjectId(id),
-                    isDeleted: false
-                }
+        const $lookup = {
+            $lookup: {
+                from: Collections.CHAPTER,
+                foreignField: "_id",
+                localField: "chapterId",
+                as: "chapter"
             }
-            const $project = {
-                $project: {
+        }
+        const $unwind = {
+            $unwind: {
+                path: "$chapter",
+                preserveNullAndEmptyArrays: true
+            }
+        }
+        const $project = {
+            $project: {
+                name: 1,
+                chapter: {
+                    _id: 1,
                     name: 1
                 }
             }
-            const $pipeline = [$match, $project]
-            return await this.aggregate($pipeline)
-        } catch (error) {
-            return error
         }
+        const $pipeline = [$match, $lookup, $unwind, $project]
+        const data = await this.aggregate($pipeline)
+        if (!data || !data[0]) throw TopicResponse.NotFound(id);
+        return data[0];
+    }
+
+    public async getByChapterId(id) {
+        const $match = {
+            $match: {
+                "chapterId": new Types.ObjectId(id),
+                isDeleted: false
+            }
+        }
+        const $project = {
+            $project: {
+                name: 1
+            }
+        }
+        const $pipeline = [$match, $project]
+        return await this.aggregate($pipeline)
     }
 }
 

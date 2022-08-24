@@ -1,11 +1,11 @@
 import { ModelType } from "@typegoose/typegoose/lib/types";
 import { Types } from "mongoose";
+import { Collections } from "../constants/collections";
+import { SolveTestResponse } from "../db/model/tests/solveTests/solveTests.error";
 import { SolveTest, SolveTestModel } from "../db/model/tests/solveTests/solveTests.model";
 import { Status } from "../db/model/tests/testResults/testResult.model";
 import { SolveTestDto } from "../validation/dto/solveTest.dto";
 import { CommonServices } from "./common.service";
-import { questionService } from "./question.service";
-import { testService } from "./test.service";
 import { testResultService } from "./testResult.service";
 
 
@@ -15,110 +15,104 @@ class SolveTestService extends CommonServices<SolveTest>{
     }
 
     public async create(data: SolveTestDto) {
-        try {
-            const test = await testResultService.findOne({ userId: data.userId, status: Status.STARTED })
-
-            const limit = (await testService.findById(test.testId)).duration
-            
-            if (new Date() > new Date(test.startedAt.getTime() + 1000 * 60 * limit)) return
-
-            const $match = {
-                $match: {
-                    userId: new Types.ObjectId(data.userId),
-                    questionId: new Types.ObjectId(data.questionId),
-                    createdAt: { $gte: new Date(test.startedAt) }
-                }
+        const $match = {
+            $match: {
+                userId: data.userId,
+                status: Status.STARTED
             }
-            const isDuplicate = (await solveTestService.aggregate([$match])).shift()
-
-            if (isDuplicate) return await this.updateOne(isDuplicate._id, data)
-
-            return await super.create(data)
-        } catch (error) {
-            throw error
         }
+
+        const testResult = (await testResultService.aggregate([$match])).shift()
+
+        const query = {
+            userId: data.userId,
+            questionId: data.questionId,
+            createdAt: { $gte: new Date(testResult.startedAt) }
+        }
+
+        return await super.updateOneByQuery(
+            query,
+            data,
+            { upsert: true, returnOriginal: false }
+        )
     }
 
     public async checkTest(testId, userId) {
-        try {
-            const $match = {
-                $match: {
-                    testId: new Types.ObjectId(testId)
-                }
+        const $match = {
+            $match: {
+                userId: userId,
+                status: Status.STARTED
             }
-            const $project = {
-                $project: {
-                    answers: {
-                        $map: {
-                            input: {
-                                $filter: {
-                                    input: "$answers",
-                                    as: "answer",
-                                    cond: {
-                                        $and: [
-                                            { $eq: ["$$answer.isCorrect", true] }
-                                        ]
-                                    }
-                                },
-                            },
-                            as: "el",
-                            in: "$$el._id"
-                        }
-                    }
-                },
-            }
-
-            const $unwind = {
-                $unwind: {
-                    path: "$answers"
-                }
-            }
-            const questions = await questionService.aggregate([$match, $project, $unwind])
-
-            const test = await testResultService.findOne({ userId: userId, status: Status.STARTED })
-
-            const $userProject = {
-                $project: {
-                    userId: 1,
-                    createdAt: 1,
-                    trueAnswer: {
-                        $filter: {
-                            input: questions,
-                            as: "true",
-                            cond: {
-                                $and: [
-                                    { $eq: ["$$true.answers", "$answerId"] }
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
-
-            let $userMatch = {
-                $match: {
-                    userId: new Types.ObjectId(userId),
-                    createdAt: { $gte: new Date(test.startedAt) },
-                    $expr: {
-                        $and: [
-                            { $size: "$trueAnswer" }
-                        ]
-                    }
-                }
-            }
-
-            const userAnswers = await this.aggregate([$userProject, $userMatch])
-
-            let data = {
-                score: userAnswers.length,
-                finishedAt: new Date(),
-                status: Status.FINISHED,
-                result: userAnswers.length *100/questions.length
-            }
-            return await testResultService.updateOne(test._id, data)
-        } catch (error) {
-            throw error
         }
+        const $lookup = {
+            $lookup: {
+                from: Collections.QUESTION,
+                foreignField: "testId",
+                localField: "testId",
+                as: "questions"
+            }
+        }
+        const $unwind = {
+            $unwind: {
+                path: "$questions",
+                preserveNullAndEmptyArrays: true
+            }
+        }
+
+        const $unwindAnswers = {
+            $unwind: {
+                path: '$questions.answers',
+                preserveNullAndEmptyArrays: true
+            }
+        }
+
+        const $matchCorrectAnswers = {
+            $match: {
+                'questions.answers.isCorrect': true
+            }
+        }
+
+        const test = (await testResultService.aggregate([$match, $lookup, $unwind, $unwindAnswers, $matchCorrectAnswers]))
+        if (!test.length) throw SolveTestResponse.Finished(testId)
+
+        const $answerMatch = {
+            $match: {
+                userId: new Types.ObjectId(userId),
+                createdAt: { $gte: new Date(test[0].startedAt) }
+            }
+        }
+
+        const $project = {
+            $project: {
+                _id: 1,
+                userId: 1,
+                questionId: 1,
+                answerId: 1,
+                createdAt: 1,
+                trueAnswer: {
+                    $filter: {
+                        input: test,
+                        as: "trueAnswer",
+                        cond: {
+                            $and: [
+                                { $eq: ["$$trueAnswer.questions._id", "$questionId"] },
+                                { $eq: ["$$trueAnswer.questions.answers._id", "$answerId"] }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+
+        const trueAnswers = await this.aggregate([$answerMatch, $project])
+
+        let data = {
+            score: trueAnswers.length,
+            finishedAt: new Date(),
+            status: Status.FINISHED,
+            result: trueAnswers.length * 100 / test.length
+        }
+        return await testResultService.updateOne(test[0]._id, data)
     }
 }
 

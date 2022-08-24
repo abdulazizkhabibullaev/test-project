@@ -21,41 +21,37 @@ class TestResultService extends CommonServices<TestResult>{
     }
 
     public async lastTestResult(id) {
-        try {
-            const $match = {
-                $match: {
-                    _id: new Types.ObjectId(id)
-                }
+        const $match = {
+            $match: {
+                _id: new Types.ObjectId(id)
             }
-            const $project = {
-                $project: {
-                    _id: 1,
-                    duration: {
-                        $dateDiff: {
-                            startDate: "$startedAt",
-                            endDate: "$finishedAt",
-                            unit: "second"
-                        }
-                    },
-                    userId: 1,
-                    testId: 1,
-                    score: 1,
-                    result: 1
-                }
-            }
-
-            const test = (await testResultService.aggregate([$match, $project])).shift()
-
-            const questionCount = (await testService.findById(test.testId)).questionCount
-
-            const statistics = {
-                ...test,
-                questions: questionCount
-            }
-            return statistics
-        } catch (error) {
-            throw error
         }
+        const $project = {
+            $project: {
+                _id: 1,
+                duration: {
+                    $dateDiff: {
+                        startDate: "$startedAt",
+                        endDate: "$finishedAt",
+                        unit: "second"
+                    }
+                },
+                userId: 1,
+                testId: 1,
+                score: 1,
+                result: 1
+            }
+        }
+
+        const test = (await testResultService.aggregate([$match, $project])).shift()
+
+        const questionCount = (await testService.findById(test.testId)).questionCount
+
+        const statistics = {
+            ...test,
+            questions: questionCount
+        }
+        return statistics
     }
 
     public async testResults(testId) {
@@ -98,67 +94,55 @@ class TestResultService extends CommonServices<TestResult>{
     }
 
     public async avarageResult(testId) {
-        try {
-            let $group = {
-                $group: {
-                    _id: "$testId",
-                    avg: { $avg: "$result" }
-                }
+        let $group = {
+            $group: {
+                _id: "$testId",
+                avg: { $avg: "$result" }
             }
-            let $match = {
-                $match: {
-                    testId: new Types.ObjectId(testId),
-                    isDeleted: false
-                }
-            }
-            const result = await testResultService.aggregate([$match, $group])
-
-            return result.shift()
-        } catch (error) {
-            return error
         }
+        let $match = {
+            $match: {
+                testId: new Types.ObjectId(testId),
+                isDeleted: false
+            }
+        }
+        const result = await testResultService.aggregate([$match, $group])
+
+        return result.shift()
     }
 
     public async maxResult(testId) {
-        try {
-            let $group = {
-                $group: {
-                    _id: "$testId",
-                    max: { $max: "$result" }
-                }
+        let $group = {
+            $group: {
+                _id: "$testId",
+                max: { $max: "$result" }
             }
-            let $match = {
-                $match: {
-                    testId: new Types.ObjectId(testId),
-                    isDeleted: false
-                }
-            }
-            const result = await testResultService.aggregate([$match, $group])
-
-            return result.shift()
-        } catch (error) {
-            return error
         }
+        let $match = {
+            $match: {
+                testId: new Types.ObjectId(testId),
+                isDeleted: false
+            }
+        }
+        const result = await testResultService.aggregate([$match, $group])
+
+        return result.shift()
     }
 
     public async userCount(testId) {
-        try {
-            let $match = {
-                $match: {
-                    testId: new Types.ObjectId(testId),
-                    isDeleted: false
-                }
+        let $match = {
+            $match: {
+                testId: new Types.ObjectId(testId),
+                isDeleted: false
             }
-            let $group = {
-                $group: {
-                    _id: "$userId",
-                }
-            }
-            const result = await this.aggregate([$match, $group])
-            return result.length
-        } catch (error) {
-            return error
         }
+        let $group = {
+            $group: {
+                _id: "$userId",
+            }
+        }
+        const result = await this.aggregate([$match, $group])
+        return result.length
     }
 
     public async myResults(userId) {

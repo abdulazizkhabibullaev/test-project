@@ -63,7 +63,7 @@ class EmployeeService extends CommonServices<Employee>{
             }
         }
         const $pipeline = [$lookup, $unwind, $project]
-        return await this.findPaging(query, data,$pipeline)
+        return await this.findPaging(query, data, $pipeline)
     }
 
     public async update(id, data: EmployeeDto, options?: QueryOptions) {
@@ -75,45 +75,41 @@ class EmployeeService extends CommonServices<Employee>{
         }
     }
 
-    public async getById(id:string) {
-        try {
-            const $match = {
-                $match: {
-                    _id: new Types.ObjectId(id),
-                    isDeleted: false
-                }
+    public async getById(id: string) {
+        const $match = {
+            $match: {
+                _id: new Types.ObjectId(id),
+                isDeleted: false
             }
-            const $lookup = {
-                $lookup: {
-                    from: Collections.ROLE,
-                    foreignField: "_id",
-                    localField: "roleId",
-                    as: "role"
-                }
-            }
-            const $unwind = {
-                $unwind: {
-                    path: "$role",
-                    preserveNullAndEmptyArrays: true
-                }
-            }
-            const $project = {
-                $project: {
-                    fullName: 1,
-                    phoneNumber: 1,
-                    role: {
-                        _id: 1,
-                        name: 1
-                    }
-                }
-            }
-            const $pipeline = [$match, $lookup, $unwind, $project]
-            const data = await this.aggregate($pipeline)
-            if (!data || !data[0]) throw EmployeeResponse.NotFound(id);
-            return data[0];
-        } catch (error) {
-            return error
         }
+        const $lookup = {
+            $lookup: {
+                from: Collections.ROLE,
+                foreignField: "_id",
+                localField: "roleId",
+                as: "role"
+            }
+        }
+        const $unwind = {
+            $unwind: {
+                path: "$role",
+                preserveNullAndEmptyArrays: true
+            }
+        }
+        const $project = {
+            $project: {
+                fullName: 1,
+                phoneNumber: 1,
+                role: {
+                    _id: 1,
+                    name: 1
+                }
+            }
+        }
+        const $pipeline = [$match, $lookup, $unwind, $project]
+        const data = await this.aggregate($pipeline)
+        if (!data || !data[0]) throw EmployeeResponse.NotFound(id);
+        return data[0];
     }
 }
 

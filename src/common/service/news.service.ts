@@ -49,7 +49,6 @@ class NewsService extends CommonServices<News>{
     }
 
     public async getById(id: string) {
-        try {
             const $match = {
                 $match: {
                     _id: new Types.ObjectId(id),
@@ -71,9 +70,6 @@ class NewsService extends CommonServices<News>{
             if (!data || !data[0]) throw NewsResponse.NotFound(id);
 
             return data[0];
-        } catch (error) {
-            return error
-        }
     }
 
 }

@@ -34,14 +34,20 @@ class QuestionService extends CommonServices<Question>{
             $project: {
                 question: 1,
                 answers: {
-                    $filter: {
-                        input: "$answers",
-                        as: "answer",
-                        cond: {
-                            $and: [
-                                { $eq: ["$$answer.isCorrect", true] }
-                            ]
-                        }
+                    $map: {
+                        input: {
+                            $filter: {
+                                input: "$answers",
+                                as: "answer",
+                                cond: {
+                                    $and: [
+                                        { $eq: ["$$answer.isCorrect", true] }
+                                    ]
+                                }
+                            },
+                        },
+                        as: "el",
+                        in: "$$el._id"
                     }
                 },
             }
@@ -62,49 +68,45 @@ class QuestionService extends CommonServices<Question>{
     }
 
     public async getById(id: string) {
-        try {
-            const $match = {
-                $match: {
-                    _id: new Types.ObjectId(id),
-                    isDeleted: false
-                }
+        const $match = {
+            $match: {
+                _id: new Types.ObjectId(id),
+                isDeleted: false
             }
-            const $lookup = {
-                $lookup: {
-                    from: Collections.TEST,
-                    foreignField: "_id",
-                    localField: "testId",
-                    as: "test"
-                }
-            }
-            const $unwind = {
-                $unwind: {
-                    path: "$test",
-                    preserveNullAndEmptyArrays: true
-                }
-            }
-            const $project = {
-                $project: {
-                    test: {
-                        name: 1,
-                        questionCount: 1,
-                        duration: 1
-                    },
-                    question: 1,
-                    answers: {
-                        _id: 1,
-                        isCorrect: 1,
-                        answer: 1,
-                    },
-                }
-            }
-            const $pipeline = [$match, $lookup, $unwind, $project]
-            const data = await this.aggregate($pipeline)
-            if (!data || !data[0]) throw QuestionResponse.NotFound(id);
-            return data[0];
-        } catch (error) {
-            return error
         }
+        const $lookup = {
+            $lookup: {
+                from: Collections.TEST,
+                foreignField: "_id",
+                localField: "testId",
+                as: "test"
+            }
+        }
+        const $unwind = {
+            $unwind: {
+                path: "$test",
+                preserveNullAndEmptyArrays: true
+            }
+        }
+        const $project = {
+            $project: {
+                test: {
+                    name: 1,
+                    questionCount: 1,
+                    duration: 1
+                },
+                question: 1,
+                answers: {
+                    _id: 1,
+                    isCorrect: 1,
+                    answer: 1,
+                },
+            }
+        }
+        const $pipeline = [$match, $lookup, $unwind, $project]
+        const data = await this.aggregate($pipeline)
+        if (!data || !data[0]) throw QuestionResponse.NotFound(id);
+        return data[0];
     }
 }
 

@@ -65,7 +65,6 @@ class ChapterService extends CommonServices<Chapter>{
     }
 
     public async getById(id: string) {
-        try {
             const $match = {
                 $match: {
                     _id: new Types.ObjectId(id),
@@ -99,13 +98,9 @@ class ChapterService extends CommonServices<Chapter>{
             const data = await this.aggregate($pipeline)
             if (!data || !data[0]) throw ChapterResponse.NotFound(id);
             return data[0];
-        } catch (error) {
-            return error
-        }
     }
 
     public async getBySubjectId(id) {
-        try {
             const $match = {
                 $match: {
                     "subjectId": new Types.ObjectId(id),
@@ -119,9 +114,6 @@ class ChapterService extends CommonServices<Chapter>{
             }
             const $pipeline = [$match, $project]
             return await this.aggregate($pipeline)
-        } catch (error) {
-            return error
-        }
     }
 }
 

@@ -6,7 +6,7 @@ export async function uploadFileHandler(req, res, next) {
     try {
         console.log('file uploaded succesfully')
         return res.send(BaseResponse.Success(req.file.path))
-} catch (error) {
-    return next(error)
-}
+    } catch (error) {
+        return next(error)
+    }
 }

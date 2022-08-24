@@ -57,8 +57,8 @@ class SubjectService extends CommonServices<Subject>{
             }
         }
         const $pipeline = [$lookup, $unwind, $project]
-        
-        return await this.findPaging(classId? newQuery : query, data, $pipeline)
+
+        return await this.findPaging(classId ? newQuery : query, data, $pipeline)
     }
 
     public async update(id, data: SubjectDto, options?: QueryOptions) {
@@ -71,62 +71,54 @@ class SubjectService extends CommonServices<Subject>{
     }
 
     public async getById(id: string) {
-        try {
-            const $match = {
-                $match: {
-                    _id: new Types.ObjectId(id),
-                    isDeleted: false
-                }
+        const $match = {
+            $match: {
+                _id: new Types.ObjectId(id),
+                isDeleted: false
             }
-            const $lookup = {
-                $lookup: {
-                    from: Collections.CLASS,
-                    foreignField: "_id",
-                    localField: "classId",
-                    as: "class"
-                }
-            }
-            const $unwind = {
-                $unwind: {
-                    path: "$class",
-                    preserveNullAndEmptyArrays: true
-                }
-            }
-            const $project = {
-                $project: {
-                    name: 1,
-                    class: {
-                        _id: 1,
-                        classNumber: 1
-                    }
-                }
-            }
-            const $pipeline = [$match, $lookup, $unwind, $project]
-            const data = await this.aggregate($pipeline)
-            if (!data || !data[0]) throw SubjectResponse.NotFound(id);
-            return data[0];
-        } catch (error) {
-            return error
         }
+        const $lookup = {
+            $lookup: {
+                from: Collections.CLASS,
+                foreignField: "_id",
+                localField: "classId",
+                as: "class"
+            }
+        }
+        const $unwind = {
+            $unwind: {
+                path: "$class",
+                preserveNullAndEmptyArrays: true
+            }
+        }
+        const $project = {
+            $project: {
+                name: 1,
+                class: {
+                    _id: 1,
+                    classNumber: 1
+                }
+            }
+        }
+        const $pipeline = [$match, $lookup, $unwind, $project]
+        const data = await this.aggregate($pipeline)
+        if (!data || !data[0]) throw SubjectResponse.NotFound(id);
+        return data[0];
     }
 
     public async getByClassId(id) {
-        try {
-            const $match = {
-                $match: {
-                    "classId": new Types.ObjectId(id)
-                }
+        const $match = {
+            $match: {
+                "classId": new Types.ObjectId(id)
             }
-            const $project = {
-                $project: {
-                    name: 1
-                }
-            }
-            const $pipeline = [$match, $project]
-            return await this.aggregate($pipeline)
-        } catch (error) {
-            return error    
         }
+        const $project = {
+            $project: {
+                name: 1
+            }
+        }
+        const $pipeline = [$match, $project]
+        return await this.aggregate($pipeline)
     }
 }
 

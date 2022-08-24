@@ -1,8 +1,8 @@
 import { Types } from "mongoose"
 import { SolveTestResponse } from "../../common/db/model/tests/solveTests/solveTests.error"
 import { Status } from "../../common/db/model/tests/testResults/testResult.model"
-import { questionService } from "../../common/service/question.service"
 import { solveTestService } from "../../common/service/solveTest.service"
+import { testService } from "../../common/service/test.service"
 import { testResultService } from "../../common/service/testResult.service"
 import { SolveTestDto } from "../../common/validation/dto/solveTest.dto"
 import { DtoGroup } from "../../common/validation/dtoGroups"
@@ -34,14 +34,15 @@ export async function solveTestHandler(req, res, next: Function) {
 
         await validateIt(data, SolveTestDto, DtoGroup.CREATE)
 
-        const question = await questionService.findById(data.questionId)
-
-        const result = await solveTestService.create(data)
-
-        if (!result) {
-            const test = await solveTestService.checkTest(question.testId, data.userId)
+        const testResult = await testResultService.findOne({ userId: data.userId, status: Status.STARTED })
+        const test = await testService.findById(testResult.testId)
+        const limit = test.duration
+        
+        if (new Date() > new Date((testResult.startedAt).getTime() + 1000 * 60 * limit)) {
             return res.send(SolveTestResponse.Time(test._id))
         }
+
+        const result = await solveTestService.create(data)
 
         return res.send(SolveTestResponse.Success(result._id))
     } catch (error) {
@@ -60,7 +61,7 @@ export async function finishTestHandler(req, res, next: Function) {
 
         const checkTest = await solveTestService.checkTest(data.testId, data.userId)
 
-        const result = await testResultService.lastTestResult(checkTest._id)
+        const result = await testResultService.lastTestResult(checkTest)
 
         return res.send(SolveTestResponse.Success(result))
     } catch (error) {

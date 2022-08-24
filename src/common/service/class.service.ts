@@ -47,7 +47,6 @@ class ClassService extends CommonServices<Class>{
     }
 
     public async getById(id: string) {
-        try {
             const $match = {
                 $match: {
                     _id: new Types.ObjectId(id),
@@ -64,9 +63,6 @@ class ClassService extends CommonServices<Class>{
             const data = await this.aggregate($pipeline)
             if (!data || !data[0]) throw ClassResponse.NotFound(id);
             return data[0];
-        } catch (error) {
-            return error
-        }
     }
 }
 

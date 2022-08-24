@@ -14,13 +14,9 @@ class RoleService extends CommonServices<Role>{
     }
 
     public async getRoleById(id) {
-        try {
-            const role = await this.findById(id)
-            if (!role) throw RoleResponse.NotFound(id)
-            return role
-        } catch (error) {
-            return error
-        }
+        const role = await this.findById(id)
+        if (!role) throw RoleResponse.NotFound(id)
+        return role
     }
 
     public async create(data: RoleDto) {
@@ -33,25 +29,17 @@ class RoleService extends CommonServices<Role>{
     }
 
     public async hasAccess(id: string, access: string) {
-        try {
-            const role = await this.findById(id)
-            if (!role) throw RoleResponse.NotFound(id)
-            if(!role[access] || role.isDeleted) throw EmployeeResponse.NotEnoughPermission()
-        } catch (error) {
-            throw error
-        }
-        
+        const role = await this.findById(id)
+        if (!role) throw RoleResponse.NotFound(id)
+        if (!role[access] || role.isDeleted) throw EmployeeResponse.NotEnoughPermission()
+
     }
 
     public async getPaging(data: PagingDto) {
-        try {
             let query = {
                 isDeleted: false
             }
             return this.findPaging(query, data)
-        } catch (error) {
-            throw error
-        }
     }
 
     public async update(id, data: RoleDto, options?: QueryOptions) {
